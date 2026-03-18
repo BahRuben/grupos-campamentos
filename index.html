@@ -644,9 +644,19 @@ async function importCSV(input) {
 
         if (rows.length === 0) { toast('No se encontraron participantes en el CSV', true); return; }
 
-        const { error } = await db.from('participants').insert(rows);
-        if (error) toast('Error al importar: ' + error.message, true);
-        else toast(`${rows.length} participantes importados ✔`);
+        const CHUNK = 100;
+        let imported = 0;
+        let hasError = false;
+        toast(`Importando ${rows.length} participantes...`);
+        
+        for (let i = 0; i < rows.length; i += CHUNK) {
+            const chunk = rows.slice(i, i + CHUNK);
+            const { error } = await db.from('participants').insert(chunk);
+            if (error) { toast(`Error: ${error.message}`, true); hasError = true; break; }
+            imported += chunk.length;
+        }
+        
+        if (!hasError) toast(`✔ ${imported} participantes importados`);
         loadData();
     };
     reader.readAsText(file, 'UTF-8');
