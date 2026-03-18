@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampManager 🏕️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --camp-green: #16a34a;
+            --camp-green-light: #bbf7d0;
+            --camp-blue: #1d4ed8;
+            --camp-sky: #0ea5e9;
+            --camp-amber: #f59e0b;
+            --camp-red: #dc2626;
+            --bg: #f0fdf4;
+            --card: #ffffff;
+            --border: #d1fae5;
+            --text: #14532d;
+            --text-soft: #6b7280;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(22, 163, 74, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.06) 0%, transparent 50%);
+            min-height: 100vh;
+        }
+
+        h1, h2, h3, .font-display { font-family: 'Outfit', sans-serif; }
+
+        /* ── AUTH SCREEN ── */
+        #authScreen {
+            background: linear-gradient(135deg, #052e16 0%, #14532d 40%, #166534 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        #authScreen::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2316a34a' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        #authScreen::after {
+            content: '🏕️';
+            position: absolute;
+            font-size: 300px;
+            opacity: 0.04;
+            bottom: -60px;
+            right: -60px;
+            line-height: 1;
+        }
+
+        .auth-card {
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.97);
+            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 40px 80px -20px rgba(0,0,0,0.5);
+        }
+
+        /* ── HEADER ── */
+        header {
+            background: linear-gradient(90deg, #052e16 0%, #14532d 60%, #15803d 100%);
+            border-bottom: 2px solid #16a34a;
+        }
+
+        /* ── CARDS ── */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: all 0.25s ease;
+        }
+        .card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+
+        .group-card {
+            background: var(--card);
+            border: 1.5px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.25s ease;
+        }
+        .group-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 32px rgba(22,163,74,0.12);
+            border-color: #86efac;
+        }
+
+        /* ── BUTTONS ── */
+        .btn-primary {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(22,163,74,0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(22,163,74,0.4);
+            background: linear-gradient(135deg, #15803d, #166534);
+        }
+
+        .btn-danger {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-danger:hover { background: #fee2e2; }
+
+        /* ── INPUTS ── */
+        input[type=text], input[type=email], input[type=password], input[type=number], select {
+            border: 1.5px solid #d1fae5;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: #f8fffe;
+            width: 100%;
+            outline: none;
+        }
+        input:focus, select:focus {
+            border-color: #16a34a;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
+        }
+
+        /* ── STAT CARDS ── */
+        .stat-card {
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -20px; right: -20px;
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            opacity: 0.08;
+        }
+
+        /* ── PARTICIPANT PILL ── */
+        .participant-pill {
+            background: white;
+            border: 1px solid #d1fae5;
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .participant-pill:hover {
+            border-color: #86efac;
+            box-shadow: 0 3px 10px rgba(22,163,74,0.1);
+        }
+
+        .avatar {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #bbf7d0, #86efac);
+            color: #15803d;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700;
+            font-size: 11px;
+            font-family: 'Outfit', sans-serif;
+            flex-shrink: 0;
+        }
+
+        /* ── SYNC INDICATOR ── */
+        .live-dot {
+            width: 8px; height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+            animation: live-pulse 2s infinite;
+        }
+        @keyframes live-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
+            70% { box-shadow: 0 0 0 8px rgba(74,222,128,0); }
+            100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); }
+        }
+
+        /* ── PROGRESS BAR ── */
+        .progress-track {
+            height: 4px;
+            background: #f0fdf4;
+            width: 100%;
+        }
+        .progress-fill {
+            height: 100%;
+            transition: width 0.6s ease;
+            border-radius: 0 2px 2px 0;
+        }
+
+        /* ── MODAL ── */
+        .modal-overlay {
+            backdrop-filter: blur(4px);
+            background: rgba(5, 46, 22, 0.6);
+        }
+        .modal-box {
+            border-radius: 20px;
+            box-shadow: 0 40px 80px -20px rgba(0,0,0,0.3);
+            border: 1px solid #d1fae5;
+        }
+
+        /* ── BADGE ── */
+        .badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-width: 22px; height: 22px;
+            border-radius: 11px;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            padding: 0 6px;
+        }
+
+        /* ── SCROLLBAR ── */
+        .scroll-area { overflow-y: auto; }
+        .scroll-area::-webkit-scrollbar { width: 4px; }
+        .scroll-area::-webkit-scrollbar-track { background: #f0fdf4; }
+        .scroll-area::-webkit-scrollbar-thumb { background: #86efac; border-radius: 2px; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state {
+            border: 2px dashed #bbf7d0;
+            border-radius: 14px;
+            padding: 32px 20px;
+            text-align: center;
+            color: #6b7280;
+        }
+
+        /* ── TOAST ── */
+        #toast {
+            position: fixed;
+            bottom: 24px; right: 24px;
+            background: #052e16;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            z-index: 9999;
+            transition: all 0.35s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateY(80px);
+            opacity: 0;
+            border-left: 4px solid #4ade80;
+        }
+        #toast.show { transform: translateY(0); opacity: 1; }
+
+        .hidden-app { display: none !important; }
+
+        /* ── GROUP HEADER COLORS ── */
+        .group-hue-0 { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-color: #bbf7d0; }
+        .group-hue-1 { background: linear-gradient(135deg, #eff6ff, #dbeafe); border-color: #bfdbfe; }
+        .group-hue-2 { background: linear-gradient(135deg, #fefce8, #fef9c3); border-color: #fde68a; }
+        .group-hue-3 { background: linear-gradient(135deg, #fff7ed, #ffedd5); border-color: #fed7aa; }
+        .group-hue-4 { background: linear-gradient(135deg, #fdf4ff, #fae8ff); border-color: #e9d5ff; }
+        .group-hue-5 { background: linear-gradient(135deg, #fff1f2, #ffe4e6); border-color: #fecdd3; }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════════════════ -->
+<div id="authScreen" class="fixed inset-0 flex items-center justify-center z-50">
+    <div class="auth-card rounded-2xl p-8 max-w-sm w-full mx-4 relative z-10">
+        <div class="text-center mb-7">
+            <div class="w-16 h-16 rounded-2xl bg-green-50 border-2 border-green-200 flex items-center justify-center mx-auto mb-4">
+                <span style="font-size:32px">🏕️</span>
+            </div>
+            <h1 class="text-2xl font-display font-bold text-gray-900">CampManager</h1>
+            <p class="text-sm text-gray-500 mt-1">Sistema de grupos para monitores</p>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Email</label>
+                <input type="email" id="loginEmail" placeholder="monitor@tabara.com"
+                       onkeydown="if(event.key==='Enter') login()">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Contraseña</label>
+                <input type="password" id="loginPassword" placeholder="••••••••"
+                       onkeydown="if(event.key==='Enter') login()">
+            </div>
+
+            <button onclick="login()" id="loginBtn" class="btn-primary w-full flex items-center justify-center gap-2 py-3">
+                <i class="fas fa-sign-in-alt"></i> Entrar al sistema
+            </button>
+
+            <div id="authError" class="hidden bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-lg text-center"></div>
+        </div>
+
+        <p class="text-xs text-center text-gray-400 mt-5">
+            ¿No tienes acceso? Contacta al administrador del campamento
+        </p>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     APP PRINCIPAL
+══════════════════════════════════════════════════ -->
+<div id="appContent" class="hidden-app">
+
+    <!-- HEADER -->
+    <header class="sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <span style="font-size:28px">🏕️</span>
+                <div>
+                    <h1 class="text-lg font-display font-bold text-white leading-none">CampManager</h1>
+                    <p class="text-xs text-green-300 flex items-center gap-1.5 mt-0.5">
+                        <span class="live-dot"></span> En vivo · compartido
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex gap-2 items-center">
+                <span id="userEmail" class="text-xs text-green-300 hidden md:inline bg-white/10 px-3 py-1.5 rounded-full"></span>
+                <button onclick="exportData()" class="text-xs bg-white/15 hover:bg-white/25 text-white px-3 py-2 rounded-lg transition font-medium">
+                    <i class="fas fa-download mr-1"></i>CSV
+                </button>
+                <label class="text-xs bg-white/15 hover:bg-white/25 text-white px-3 py-2 rounded-lg transition font-medium cursor-pointer">
+                    <i class="fas fa-upload mr-1"></i>Importar
+                    <input type="file" id="csvInput" accept=".csv" class="hidden" onchange="importCSV(this)">
+                </label>
+                <button onclick="logout()" title="Cerrar sesión" class="text-xs bg-red-500/25 hover:bg-red-500/40 text-white px-3 py-2 rounded-lg transition">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+
+        <!-- PANEL CREAR GRUPO + STATS -->
+        <div class="card p-5 mb-6">
+            <h2 class="font-display font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-layer-group text-green-600"></i> Crear nuevo grupo
+            </h2>
+            <div class="flex flex-wrap gap-3 items-end">
+                <div class="flex-1 min-w-[180px]">
+                    <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Nombre del grupo</label>
+                    <input type="text" id="groupName" placeholder="Ej: Lobos, Grupo A...">
+                </div>
+                <div style="width:110px">
+                    <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Máx. plazas</label>
+                    <input type="number" id="groupSize" value="10" min="1" max="100">
+                </div>
+                <div class="flex-1 min-w-[180px]">
+                    <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Monitor responsable</label>
+                    <select id="groupLeader">
+                        <option value="">Sin asignar...</option>
+                    </select>
+                </div>
+                <button onclick="createGroup()" class="btn-primary flex items-center gap-2">
+                    <i class="fas fa-plus"></i> Crear grupo
+                </button>
+            </div>
+
+            <!-- ESTADÍSTICAS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 pt-4 border-t border-green-100">
+                <div class="stat-card bg-blue-50 border border-blue-100">
+                    <div class="text-2xl font-display font-bold text-blue-600" id="totalParticipants">0</div>
+                    <div class="text-xs text-gray-500 mt-1">Total inscritos</div>
+                </div>
+                <div class="stat-card bg-green-50 border border-green-100">
+                    <div class="text-2xl font-display font-bold text-green-600" id="assignedCount">0</div>
+                    <div class="text-xs text-gray-500 mt-1">Asignados</div>
+                </div>
+                <div class="stat-card bg-amber-50 border border-amber-100">
+                    <div class="text-2xl font-display font-bold text-amber-600" id="pendingCount">0</div>
+                    <div class="text-xs text-gray-500 mt-1">Sin asignar</div>
+                </div>
+                <div class="stat-card bg-purple-50 border border-purple-100">
+                    <div class="text-2xl font-display font-bold text-purple-600" id="groupCount">0</div>
+                    <div class="text-xs text-gray-500 mt-1">Grupos</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+            <!-- COLUMNA SIN ASIGNAR -->
+            <div class="lg:col-span-1">
+                <div class="card h-full overflow-hidden flex flex-col">
+                    <div class="p-4 border-b border-green-100 bg-amber-50 flex justify-between items-center rounded-t-2xl">
+                        <h2 class="font-display font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-user-clock text-amber-500"></i> Sin asignar
+                        </h2>
+                        <span class="badge bg-amber-100 text-amber-700" id="pendingBadge">0</span>
+                    </div>
+                    <div class="p-3 border-b border-green-50">
+                        <input type="text" id="searchPending" placeholder="🔍 Buscar participante..."
+                               onkeyup="renderPending()" style="background:#f8fffe;">
+                    </div>
+                    <div id="pendingList" class="p-3 scroll-area flex-1" style="max-height:580px">
+                        <div class="empty-state">
+                            <i class="fas fa-spinner fa-spin text-2xl text-green-400 mb-2"></i>
+                            <p class="text-sm">Cargando...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRUPOS -->
+            <div class="lg:col-span-2">
+                <div id="groupsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="col-span-full">
+                        <div class="empty-state">
+                            <i class="fas fa-spinner fa-spin text-3xl text-green-400 mb-3"></i>
+                            <p class="text-sm">Cargando grupos...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDITAR GRUPO -->
+    <div id="editModal" class="fixed inset-0 modal-overlay hidden items-center justify-center z-50">
+        <div class="modal-box bg-white max-w-md w-full mx-4 p-6">
+            <h3 class="font-display text-xl font-bold text-gray-800 mb-5">
+                <i class="fas fa-edit text-green-600 mr-2"></i>Editar grupo
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Nombre</label>
+                    <input type="text" id="editGroupName">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Plazas máximas</label>
+                    <input type="number" id="editGroupSize">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Monitor responsable</label>
+                    <select id="editGroupLeader"></select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <button onclick="closeEditModal()" class="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg font-medium text-sm transition">
+                    Cancelar
+                </button>
+                <button onclick="saveGroupEdit()" class="btn-primary">
+                    <i class="fas fa-save mr-2"></i>Guardar cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST NOTIFICATIONS -->
+<div id="toast">
+    <i class="fas fa-check-circle text-green-400"></i>
+    <span id="toastMsg"></span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════
+//  ⚠️  CONFIGURACIÓN — CAMBIA ESTAS DOS LÍNEAS CON TUS DATOS SUPABASE
+// ═══════════════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://iepjnxhhekrnmbnrrxkf.supabase.co';  // ← TU URL
+const SUPABASE_KEY = 'sb_publishable_g4ofuab3W9-Kmw-9l10EMA_mkUy5Lr9';                   // ← TU ANON KEY
+// ═══════════════════════════════════════════════════════════════════════
+
+// Inicializar cliente (nombre 'db' para no colisionar con la librería global 'supabase')
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser  = null;
+let participants = [];
+let groups       = [];
+let currentEditGroupId = null;
+
+// ─── TOAST ───────────────────────────────────────────────────────────
+function toast(msg, isError = false) {
+    const el  = document.getElementById('toast');
+    const ico = el.querySelector('i');
+    document.getElementById('toastMsg').textContent = msg;
+    el.style.borderLeftColor = isError ? '#f87171' : '#4ade80';
+    ico.className = isError ? 'fas fa-exclamation-circle text-red-400' : 'fas fa-check-circle text-green-400';
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ─── AUTENTICACIÓN ───────────────────────────────────────────────────
+async function login() {
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const btn      = document.getElementById('loginBtn');
+    const errEl    = document.getElementById('authError');
+
+    if (!email || !password) { showError('Completa todos los campos'); return; }
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Entrando...';
+    btn.disabled  = true;
+
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+
+    if (error) {
+        showError('Credenciales incorrectas. Contacta al administrador.');
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar al sistema';
+        btn.disabled  = false;
+    } else {
+        currentUser = data.user;
+        showApp();
+    }
+}
+
+function showError(msg) {
+    const el = document.getElementById('authError');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+}
+
+async function logout() {
+    await db.auth.signOut();
+    location.reload();
+}
+
+function showApp() {
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appContent').classList.remove('hidden-app');
+    document.getElementById('userEmail').textContent = currentUser.email;
+    loadData();
+    subscribeRealtime();
+}
+
+// Comprobar sesión existente al cargar
+db.auth.getSession().then(({ data: { session } }) => {
+    if (session) { currentUser = session.user; showApp(); }
+});
+
+// ─── CARGA DE DATOS ──────────────────────────────────────────────────
+async function loadData() {
+    const [{ data: gData }, { data: pData }] = await Promise.all([
+        db.from('groups').select('*').order('created_at'),
+        db.from('participants').select('*').order('name')
+    ]);
+    groups       = gData || [];
+    participants = pData || [];
+    render();
+}
+
+// ─── TIEMPO REAL ─────────────────────────────────────────────────────
+function subscribeRealtime() {
+    db.channel('changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'participants' }, loadData)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'groups' },       loadData)
+        .subscribe();
+}
+
+// ─── GRUPOS ──────────────────────────────────────────────────────────
+async function createGroup() {
+    const name     = document.getElementById('groupName').value.trim();
+    const maxSize  = parseInt(document.getElementById('groupSize').value) || 10;
+    const leaderId = document.getElementById('groupLeader').value || null;
+
+    if (!name) { toast('Introduce un nombre para el grupo', true); return; }
+
+    const { data, error } = await db.from('groups').insert([{
+        name, max_size: maxSize, leader_id: leaderId ? parseInt(leaderId) : null
+    }]).select().single();
+
+    if (error) { toast('Error al crear: ' + error.message, true); return; }
+
+    if (leaderId) {
+        await db.from('participants').update({ group_id: data.id }).eq('id', parseInt(leaderId));
+    }
+
+    document.getElementById('groupName').value  = '';
+    document.getElementById('groupSize').value  = '10';
+    document.getElementById('groupLeader').value = '';
+    toast(`Grupo "${name}" creado ✔`);
+    loadData();
+}
+
+async function deleteGroup(groupId) {
+    if (!confirm('¿Seguro que quieres eliminar este grupo? Los participantes quedarán sin asignar.')) return;
+    await db.from('participants').update({ group_id: null }).eq('group_id', groupId);
+    await db.from('groups').delete().eq('id', groupId);
+    toast('Grupo eliminado');
+    loadData();
+}
+
+// ─── PARTICIPANTES ───────────────────────────────────────────────────
+async function importCSV(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const lines   = e.target.result.split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+
+        const idx = (terms) => headers.findIndex(h => terms.some(t => h.includes(t)));
+        const nameIdx  = idx(['nombre','name','participante']);
+        const emailIdx = idx(['email','correo','mail']);
+        const ageIdx   = idx(['edad','age','años']);
+
+        const rows = [];
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+            const name = nameIdx >= 0 ? cols[nameIdx] : (cols[0] || '');
+            if (!name) continue;
+            rows.push({
+                name,
+                email:    emailIdx >= 0 ? cols[emailIdx] : '',
+                age:      ageIdx   >= 0 ? cols[ageIdx]   : '',
+                group_id: null
+            });
+        }
+
+        if (rows.length === 0) { toast('No se encontraron participantes en el CSV', true); return; }
+
+        const { error } = await db.from('participants').insert(rows);
+        if (error) toast('Error al importar: ' + error.message, true);
+        else toast(`${rows.length} participantes importados ✔`);
+        loadData();
+    };
+    reader.readAsText(file, 'UTF-8');
+    input.value = '';
+}
+
+async function assignToGroup(participantId, groupId) {
+    const group   = groups.find(g => g.id == groupId);
+    const current = participants.filter(p => p.group_id == groupId).length;
+    if (current >= group.max_size) { toast('¡Grupo completo!', true); return; }
+    await db.from('participants').update({ group_id: groupId }).eq('id', participantId);
+    loadData();
+}
+
+async function removeFromGroup(participantId) {
+    await db.from('participants').update({ group_id: null }).eq('id', participantId);
+    loadData();
+}
+
+async function deleteParticipant(participantId, name) {
+    if (!confirm(`¿Eliminar a "${name}"?`)) return;
+    await db.from('participants').delete().eq('id', participantId);
+    toast(`${name} eliminado`);
+    loadData();
+}
+
+// ─── RENDER ──────────────────────────────────────────────────────────
+function render() {
+    updateStats();
+    renderPending();
+    renderGroups();
+    updateLeaderDropdowns();
+}
+
+function updateStats() {
+    const assigned = participants.filter(p => p.group_id !== null).length;
+    document.getElementById('totalParticipants').textContent = participants.length;
+    document.getElementById('assignedCount').textContent     = assigned;
+    document.getElementById('pendingCount').textContent      = participants.length - assigned;
+    document.getElementById('pendingBadge').textContent      = participants.length - assigned;
+    document.getElementById('groupCount').textContent        = groups.length;
+}
+
+function updateLeaderDropdowns() {
+    ['groupLeader','editGroupLeader'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        const val = sel.value;
+        sel.innerHTML = '<option value="">Sin asignar...</option>';
+        participants.forEach(p => {
+            const o = document.createElement('option');
+            o.value = p.id; o.textContent = p.name;
+            sel.appendChild(o);
+        });
+        sel.value = val;
+    });
+}
+
+function renderPending() {
+    const container = document.getElementById('pendingList');
+    const search    = (document.getElementById('searchPending').value || '').toLowerCase();
+    const pending   = participants.filter(p => p.group_id === null && p.name.toLowerCase().includes(search));
+
+    if (pending.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-check-circle text-3xl text-green-400 mb-2"></i>
+                <p class="text-sm font-medium text-green-600">¡Todos asignados!</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = pending.map(p => `
+        <div class="participant-pill mb-2">
+            <div class="flex items-center gap-2 min-w-0">
+                <div class="avatar">${p.name.charAt(0).toUpperCase()}</div>
+                <div class="min-w-0">
+                    <p class="font-semibold text-gray-800 text-sm truncate">${p.name}</p>
+                    ${p.age ? `<p class="text-xs text-gray-400">${p.age} años</p>` : ''}
+                </div>
+            </div>
+            <div class="flex gap-1 flex-shrink-0 ml-2">
+                ${groups.map((g,i) => {
+                    const count = participants.filter(x => x.group_id == g.id).length;
+                    const full  = count >= g.max_size;
+                    return `<button onclick="${full ? '' : `assignToGroup(${p.id},${g.id})`}"
+                                    title="${full ? 'Grupo completo' : 'Asignar a ' + g.name}"
+                                    class="text-xs px-2 py-1 rounded-lg font-medium transition
+                                           ${full ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer'}">
+                                ${g.name.substring(0,4)}
+                            </button>`;
+                }).join('')}
+                <button onclick="deleteParticipant(${p.id},'${p.name.replace(/'/g,"\'")}')"
+                        class="text-xs px-2 py-1 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 transition">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+const HUE_COLORS = [
+    { bar:'#16a34a', text:'text-green-700',  bg:'group-hue-0' },
+    { bar:'#1d4ed8', text:'text-blue-700',   bg:'group-hue-1' },
+    { bar:'#d97706', text:'text-amber-700',  bg:'group-hue-2' },
+    { bar:'#ea580c', text:'text-orange-700', bg:'group-hue-3' },
+    { bar:'#7c3aed', text:'text-purple-700', bg:'group-hue-4' },
+    { bar:'#be123c', text:'text-rose-700',   bg:'group-hue-5' },
+];
+
+function renderGroups() {
+    const container = document.getElementById('groupsContainer');
+
+    if (groups.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full">
+                <div class="empty-state py-16">
+                    <span style="font-size:48px" class="mb-3 block">🏕️</span>
+                    <p class="font-display font-semibold text-gray-600 mb-1">No hay grupos creados</p>
+                    <p class="text-xs text-gray-400">Usa el formulario de arriba para crear el primer grupo</p>
+                </div>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = groups.map((group, idx) => {
+        const hue     = HUE_COLORS[idx % HUE_COLORS.length];
+        const members = participants.filter(p => p.group_id == group.id);
+        const pct     = Math.min((members.length / group.max_size) * 100, 100);
+        const full    = members.length >= group.max_size;
+        const leader  = participants.find(p => p.id == group.leader_id);
+        const unassigned = participants.filter(p => p.group_id === null);
+
+        return `
+        <div class="group-card">
+            <!-- Header -->
+            <div class="p-4 ${hue.bg} border-b flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <h3 class="font-display font-bold text-gray-800 text-base">${group.name}</h3>
+                        <span class="badge ${full ? 'bg-red-100 text-red-600' : 'bg-white/70 text-gray-600'}">
+                            ${members.length}/${group.max_size}
+                        </span>
+                        ${full ? '<span class="badge bg-red-500 text-white text-xs">LLENO</span>' : ''}
+                    </div>
+                    <p class="text-xs ${hue.text} flex items-center gap-1">
+                        <i class="fas fa-user-shield"></i>
+                        ${leader ? leader.name : '<span class="text-gray-400">Sin responsable</span>'}
+                    </p>
+                </div>
+                <div class="flex gap-1">
+                    <button onclick="openEditModal(${group.id})"
+                            class="p-2 text-gray-400 hover:text-blue-600 hover:bg-white/60 rounded-lg transition">
+                        <i class="fas fa-pen text-xs"></i>
+                    </button>
+                    <button onclick="deleteGroup(${group.id})"
+                            class="p-2 text-gray-400 hover:text-red-600 hover:bg-white/60 rounded-lg transition">
+                        <i class="fas fa-trash text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Barra progreso -->
+            <div class="progress-track">
+                <div class="progress-fill"
+                     style="width:${pct}%; background:${full ? '#ef4444' : pct >= 80 ? '#f59e0b' : hue.bar}">
+                </div>
+            </div>
+
+            <!-- Lista miembros -->
+            <div class="p-3 min-h-[160px] bg-gray-50/50 scroll-area" style="max-height:220px">
+                ${members.length === 0 ?
+                    `<div class="empty-state py-6 text-xs">
+                        <i class="fas fa-user-plus text-2xl text-gray-300 mb-2"></i>
+                        <p>Sin participantes aún</p>
+                     </div>` :
+                    `<div class="space-y-1.5">
+                        ${members.map(p => `
+                            <div class="participant-pill">
+                                <div class="flex items-center gap-2">
+                                    <div class="avatar">${p.name.charAt(0).toUpperCase()}</div>
+                                    <span class="font-medium text-gray-700 text-sm">${p.name}</span>
+                                    ${p.id == group.leader_id ? '<span class="badge bg-amber-100 text-amber-700 text-xs">👑</span>' : ''}
+                                </div>
+                                <button onclick="removeFromGroup(${p.id})"
+                                        class="text-gray-300 hover:text-red-500 transition p-1 rounded">
+                                    <i class="fas fa-times text-xs"></i>
+                                </button>
+                            </div>
+                        `).join('')}
+                    </div>`
+                }
+            </div>
+
+            <!-- Añadir participante -->
+            ${full ? '' : `
+            <div class="p-3 border-t border-gray-100 bg-white rounded-b-2xl">
+                <select onchange="if(this.value){assignToGroup(parseInt(this.value),${group.id});this.value=''}"
+                        class="text-sm cursor-pointer" style="background:#f8fffe">
+                    <option value="">＋ Añadir participante...</option>
+                    ${unassigned.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+                </select>
+            </div>`}
+        </div>`;
+    }).join('');
+}
+
+// ─── MODAL EDITAR ────────────────────────────────────────────────────
+function openEditModal(groupId) {
+    const group = groups.find(g => g.id == groupId);
+    if (!group) return;
+    currentEditGroupId = groupId;
+
+    document.getElementById('editGroupName').value = group.name;
+    document.getElementById('editGroupSize').value = group.max_size;
+
+    const sel = document.getElementById('editGroupLeader');
+    sel.innerHTML = '<option value="">Sin asignar...</option>';
+    participants.forEach(p => {
+        const o = document.createElement('option');
+        o.value = p.id; o.textContent = p.name;
+        if (p.id == group.leader_id) o.selected = true;
+        sel.appendChild(o);
+    });
+
+    const modal = document.getElementById('editModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeEditModal() {
+    const modal = document.getElementById('editModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    currentEditGroupId = null;
+}
+
+async function saveGroupEdit() {
+    const name     = document.getElementById('editGroupName').value.trim();
+    const maxSize  = parseInt(document.getElementById('editGroupSize').value);
+    const leaderId = document.getElementById('editGroupLeader').value || null;
+
+    if (!name) { toast('El nombre no puede estar vacío', true); return; }
+
+    const { error } = await db.from('groups').update({
+        name,
+        max_size: maxSize,
+        leader_id: leaderId ? parseInt(leaderId) : null
+    }).eq('id', currentEditGroupId);
+
+    if (error) { toast('Error: ' + error.message, true); return; }
+    toast('Grupo actualizado ✔');
+    closeEditModal();
+    loadData();
+}
+
+// ─── EXPORTAR CSV ────────────────────────────────────────────────────
+function exportData() {
+    let csv = 'Nombre,Email,Edad,Grupo,Plazas Grupo,Responsable\n';
+    participants.forEach(p => {
+        const g      = groups.find(x => x.id == p.group_id);
+        const leader = g ? participants.find(x => x.id == g.leader_id) : null;
+        csv += `"${p.name}","${p.email||''}","${p.age||''}","${g?g.name:'Sin asignar'}","${g?g.max_size:''}","${leader?leader.name:''}"\n`;
+    });
+
+    const blob = new Blob(['\uFEFF' + csv, { type:'text/csv;charset=utf-8;' }]);
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = `campamento_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    toast('CSV exportado ✔');
+}
+
+// Cerrar modal al hacer click fuera
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditModal();
+});
+</script>
+</body>
+</html>
